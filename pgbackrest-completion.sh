@@ -2,7 +2,6 @@
 #
 # Bash completion support for pgBackRest (https://pgbackrest.org/)
 
-
 _pgbackrest_commands() {
     local commands=$(${script} | awk '/^[[:space:]]+/ {print $1}' | grep -v ${script});
     echo ${commands}
@@ -13,14 +12,14 @@ _pgbackrest_command_options() {
     echo ${command_options}
 }
 
-_pgbackrest_command_options_name() {
-    local command_options_name=$(${script} help ${COMP_WORDS[2]} | awk '/^([[:space:]]+)--/ {gsub("--",""); print $1}')
-    echo ${command_options_name}
+_pgbackrest_command_options_names() {
+    local command_options_names=$(${script} help ${COMP_WORDS[2]} | awk '/^([[:space:]]+)--/ {gsub("--",""); print $1}')
+    echo ${command_options_names}
 }
 
 _pgbackrest_command_options_values() {
-    local command_options_name=$(${script} help ${COMP_WORDS[1]} ${prev#--} | awk '/^\*[[:space:]]/ {print $2}')
-    echo ${command_options_name}
+    local command_options_values=$(${script} help ${COMP_WORDS[1]} ${prev#--} | awk '/^\*[[:space:]]/ {print $2}')
+    echo ${command_options_values}
 }
 
 _pgbackrest() {
@@ -42,7 +41,7 @@ _pgbackrest() {
                     COMPREPLY=($(compgen -W "$(_pgbackrest_commands)" -- ${cur}))
                     return 0;;
                 *)
-                    case ${cur} in 
+                    case ${cur} in
                         -*)
                             COMPREPLY=($(compgen -W "$(_pgbackrest_command_options)" -- ${cur}))
                             return 0;;
@@ -53,10 +52,10 @@ _pgbackrest() {
         3)
             case ${COMP_WORDS[1]} in
                 help)
-                    COMPREPLY=($(compgen -W "$(_pgbackrest_command_options_name)" -- ${cur}))
+                    COMPREPLY=($(compgen -W "$(_pgbackrest_command_options_names)" -- ${cur}))
                     return 0;;
                 *)
-                    case ${cur} in 
+                    case ${cur} in
                         -*)
                             COMPREPLY=($(compgen -W "$(_pgbackrest_command_options)" -- ${cur}))
                             return 0;;
@@ -71,7 +70,7 @@ _pgbackrest() {
             esac;;
         *)
             # Completing the fourth, etc args.
-            case ${cur} in 
+            case ${cur} in
                 -*)
                     COMPREPLY=($(compgen -W "$(_pgbackrest_command_options)" -- ${cur}))
                     return 0;;
