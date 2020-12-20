@@ -22,6 +22,13 @@ _pgbackrest_command_options_values() {
     echo ${command_options_values}
 }
 
+_pgbackrest_stanza_values() {
+    # If no stanza - return empty string; nothing to complete
+    # May be some delays in getting stanza names
+    local stanza_values=$(${script} info --output text | awk '/^stanza:/ {print $2}')
+    echo ${stanza_values} 
+}
+
 _pgbackrest() {
     local script cur prev arg_regex
     COMPREPLY=()
@@ -60,12 +67,18 @@ _pgbackrest() {
                             COMPREPLY=($(compgen -W "$(_pgbackrest_command_options)" -- ${cur}))
                             return 0;;
                         *)
-                            if [[ ${prev} =~ ${arg_regex} ]]; then
-                                COMPREPLY=($(compgen -W "$(_pgbackrest_command_options_values)" -- ${cur}))
-                                return 0
-                            else
-                                return 1
-                            fi;;
+                            case ${prev} in
+                                --stanza)
+                                    COMPREPLY=($(compgen -W "$(_pgbackrest_stanza_values)" -- ${cur}))
+                                    return 0;;
+                                *)
+                                    if [[ ${prev} =~ ${arg_regex} ]]; then
+                                        COMPREPLY=($(compgen -W "$(_pgbackrest_command_options_values)" -- ${cur}))
+                                        return 0
+                                    else
+                                        return 1
+                                    fi;;
+                            esac;;
                     esac;;
             esac;;
         *)
@@ -75,12 +88,18 @@ _pgbackrest() {
                     COMPREPLY=($(compgen -W "$(_pgbackrest_command_options)" -- ${cur}))
                     return 0;;
                 *)
-                    if [[ ${prev} =~ ${arg_regex} ]]; then
-                        COMPREPLY=($(compgen -W "$(_pgbackrest_command_options_values)" -- ${cur}))
-                        return 0
-                    else
-                        return 1
-                    fi;;
+                    case ${prev} in
+                        --stanza)
+                            COMPREPLY=($(compgen -W "$(_pgbackrest_stanza_values)" -- ${cur}))
+                            return 0;;
+                        *)
+                            if [[ ${prev} =~ ${arg_regex} ]]; then
+                                COMPREPLY=($(compgen -W "$(_pgbackrest_command_options_values)" -- ${cur}))
+                                return 0
+                            else
+                                return 1
+                            fi;;
+                    esac;;
             esac;;
     esac
 }
