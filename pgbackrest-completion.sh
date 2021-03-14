@@ -2,31 +2,71 @@
 #
 # Bash completion support for pgBackRest (https://pgbackrest.org/)
 
-_pgbackrest_commands() {
+__pgbackrest_commands() {
     local commands=$(${script} | awk '/^[[:space:]]+/ {print $1}' | grep -v ${script});
     echo ${commands}
 }
 
-_pgbackrest_command_options() {
+__pgbackrest_command_options() {
     local command_options=$(${script} help ${COMP_WORDS[1]} | awk '/^([[:space:]]+)--/ {print $1}')
     echo ${command_options}
 }
 
-_pgbackrest_command_options_names() {
+__pgbackrest_command_options_names() {
     local command_options_names=$(${script} help ${COMP_WORDS[2]} | awk '/^([[:space:]]+)--/ {gsub("--",""); print $1}')
     echo ${command_options_names}
 }
 
-_pgbackrest_command_options_values() {
+__pgbackrest_command_options_values() {
     local command_options_values=$(${script} help ${COMP_WORDS[1]} ${prev#--} | awk '/^\*[[:space:]]/ {print $2}')
     echo ${command_options_values}
 }
 
-_pgbackrest_stanza_values() {
-    # If no stanza - return empty string; nothing to complete
-    # May be some delays in getting stanza names
+# The '--output' option is available for 2 commands ('repo-ls' and 'info') with the same values.
+# For 'repo-ls' command displayed additional information in the same format. 
+# To simplify the solution, the option values are specified directly.
+# If the values for different commands will be different, this code must be reviewed.
+__pgbackrest_command_options_values_output() {
+    echo "text"$'\n'"json"
+}
+
+# If no stanza - return empty string; nothing to complete
+# May be some delays in getting stanza names
+__pgbackrest_stanza_values() {
     local stanza_values=$(${script} info --output text | awk '/^stanza:/ {print $2}')
     echo ${stanza_values} 
+}
+
+# List repo content
+__pgbackrest_repo_content() {
+    local repo_content content position substr_path tail_value cur_line_value
+    # Regex: the ${cur}'s tail ends with '/'.
+    local folder_regex="^([[:graph:]])+\/$"
+    # Regex: get full path to last '/'.
+    local path_regex="^(([[:graph:]])+\/)+([[:graph:]])+$"
+    # By default, do not substitute the full path.
+    local substr_path="false"
+    # Check that ${cur} already contains a directory.
+    # If true - need to add the last directory full path.
+    # Valid example:
+    #     archive/ 
+    #     archive/dem
+    #     archive/demo/arch
+    [[ ${cur} =~ ${folder_regex} || ${cur%\/*} =~ ${path_regex} ]] && cur_value=${cur%/*} && substr_path="true"
+    # Get repo content by using 'repo-ls' in json format.
+    # For 'repo-get', the content is also obtained via 'repo-ls'.
+    # The logic for type 'link' is equivalent to type 'path'.
+    content=$(${script} repo-ls --output json ${cur_value} | grep -o '"[^"]*":{"type":"[^"]*"' |awk '{gsub("\"|{|}",""); print}' | grep -v -E "\.:type:(path|link)")
+    for line in ${content}; do
+        # By default, don't contain '/' at the end.
+        tail_value=""
+        # By default, don't contain full path.
+        line_value="${line}"
+        [[ ${substr_path} == "true" ]] && line_value="${cur%/*}/${line}"
+        [[ "$(echo ${line} | awk -F':' '{print $3}')" =~ ^("path"|"link")$ ]] && tail_value="/"
+        repo_content+="$(echo ${line_value} | awk -F':' '{print $1}')${tail_value}"$'\n'
+    done
+    echo ${repo_content}
 }
 
 _pgbackrest() {
@@ -40,64 +80,85 @@ _pgbackrest() {
 
     case $COMP_CWORD in
         1)
-            COMPREPLY=($(compgen -W "$(_pgbackrest_commands)" -- ${cur}))
+            COMPREPLY=($(compgen -W "$(__pgbackrest_commands)" -- ${cur}))
             return 0;;
-        2)
-            case ${COMP_WORDS[1]} in
-                help)
-                    COMPREPLY=($(compgen -W "$(_pgbackrest_commands)" -- ${cur}))
+        2)  
+            case ${cur} in
+                -*)
+                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options)" -- ${cur}))
                     return 0;;
                 *)
-                    case ${cur} in
-                        -*)
-                            COMPREPLY=($(compgen -W "$(_pgbackrest_command_options)" -- ${cur}))
+                    case ${COMP_WORDS[1]} in
+                        help)
+                            COMPREPLY=($(compgen -W "$(__pgbackrest_commands)" -- ${cur}))
+                            return 0;;
+                        repo-ls | repo-get)
+                            COMPREPLY=($(compgen -W "$(__pgbackrest_repo_content)" -- ${cur}))
+                            compopt -o nospace
                             return 0;;
                         *)
-                            return 1;;
+                        return 1;;
                     esac;;
             esac;;
         3)
-            case ${COMP_WORDS[1]} in
-                help)
-                    COMPREPLY=($(compgen -W "$(_pgbackrest_command_options_names)" -- ${cur}))
+            case ${cur} in
+                -*)
+                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options)" -- ${cur}))
                     return 0;;
                 *)
-                    case ${cur} in
-                        -*)
-                            COMPREPLY=($(compgen -W "$(_pgbackrest_command_options)" -- ${cur}))
+                    case ${prev} in
+                        --stanza)
+                            COMPREPLY=($(compgen -W "$(__pgbackrest_stanza_values)" -- ${cur}))
+                            return 0;;
+                        --output)
+                            COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
                             return 0;;
                         *)
-                            case ${prev} in
-                                --stanza)
-                                    COMPREPLY=($(compgen -W "$(_pgbackrest_stanza_values)" -- ${cur}))
-                                    return 0;;
-                                *)
-                                    if [[ ${prev} =~ ${arg_regex} ]]; then
-                                        COMPREPLY=($(compgen -W "$(_pgbackrest_command_options_values)" -- ${cur}))
-                                        return 0
-                                    else
-                                        return 1
-                                    fi;;
-                            esac;;
+                            if [[ ${prev} =~ ${arg_regex} ]]; then
+                                COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
+                                return 0
+                            else
+                                case ${COMP_WORDS[1]} in
+                                    help)
+                                        COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_names)" -- ${cur}))
+                                        return 0;;
+                                    repo-ls | repo-get)
+                                        COMPREPLY=($(compgen -W "$(__pgbackrest_repo_content)" -- ${cur}))
+                                        compopt -o nospace
+                                        return 0;;
+                                    *)
+                                        return 1;;
+                                esac
+                            fi;;
                     esac;;
             esac;;
         *)
             # Completing the fourth, etc args.
             case ${cur} in
                 -*)
-                    COMPREPLY=($(compgen -W "$(_pgbackrest_command_options)" -- ${cur}))
+                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options)" -- ${cur}))
                     return 0;;
                 *)
                     case ${prev} in
                         --stanza)
-                            COMPREPLY=($(compgen -W "$(_pgbackrest_stanza_values)" -- ${cur}))
+                            COMPREPLY=($(compgen -W "$(__pgbackrest_stanza_values)" -- ${cur}))
+                            return 0;;
+                        --output)
+                            COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
                             return 0;;
                         *)
                             if [[ ${prev} =~ ${arg_regex} ]]; then
-                                COMPREPLY=($(compgen -W "$(_pgbackrest_command_options_values)" -- ${cur}))
+                                COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
                                 return 0
                             else
-                                return 1
+                                case ${COMP_WORDS[1]} in
+                                    repo-ls | repo-get)
+                                        COMPREPLY=($(compgen -W "$(__pgbackrest_repo_content)" -- ${cur}))
+                                        compopt -o nospace
+                                        return 0;;
+                                    *)
+                                        return 1;;
+                                esac
                             fi;;
                     esac;;
             esac;;
