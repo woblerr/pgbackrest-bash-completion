@@ -52,7 +52,7 @@ __pgbackrest_repo_content() {
     #     archive/ 
     #     archive/dem
     #     archive/demo/arch
-    [[ ${cur} =~ ${folder_regex} || ${cur%\/*} =~ ${path_regex} ]] && cur_value=${cur%/*} && substr_path="true"
+    [[ ${cur} =~ ${folder_regex} || ${cur} =~ ${path_regex} ]] && cur_value=${cur%/*} && substr_path="true"
     # Get repo content by using 'repo-ls' in json format.
     # For 'repo-get', the content is also obtained via 'repo-ls'.
     # The logic for type 'link' is equivalent to type 'path'.
