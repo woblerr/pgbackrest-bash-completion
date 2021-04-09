@@ -56,7 +56,12 @@ __pgbackrest_repo_content() {
     # Get repo content by using 'repo-ls' in json format.
     # For 'repo-get', the content is also obtained via 'repo-ls'.
     # The logic for type 'link' is equivalent to type 'path'.
-    content=$(${script} repo-ls --output json ${cur_value} | grep -o '"[^"]*":{"type":"[^"]*"' |awk '{gsub("\"|{|}",""); print}' | grep -v -E "\.:type:(path|link)")
+    if [[ ${repo_key} == '' ]]; then
+        # For compatibility with versions < v2.33.
+        content=$(${script} repo-ls --output json ${cur_value} | grep -o '"[^"]*":{"type":"[^"]*"' |awk '{gsub("\"|{|}",""); print}' | grep -v -E "\.:type:(path|link)")
+    else
+        content=$(${script} repo-ls --repo ${repo_key} --output json ${cur_value} | grep -o '"[^"]*":{"type":"[^"]*"' |awk '{gsub("\"|{|}",""); print}' | grep -v -E "\.:type:(path|link)")
+    fi
     for line in ${content}; do
         # By default, don't contain '/' at the end.
         tail_value=""
@@ -75,7 +80,11 @@ _pgbackrest() {
     cur=${COMP_WORDS[COMP_CWORD]}
     prev=${COMP_WORDS[COMP_CWORD-1]}
     script=${COMP_WORDS[0]}
-    # Regex for check previous argument
+    # Repo id allowed values: 1-4.
+    # https://pgbackrest.org/command.html#command-repo-ls
+    # Defaul value ''.
+    local repo_key=''
+    # Regex for check previous argument.
     arg_regex="^--([[:alnum:][:punct:]])+$"
 
     case $COMP_CWORD in
@@ -93,6 +102,8 @@ _pgbackrest() {
                             COMPREPLY=($(compgen -W "$(__pgbackrest_commands)" -- ${cur}))
                             return 0;;
                         repo-ls | repo-get)
+                            # Because '--repo' flag not specified yet,
+                            # Get repo content from the highest priority repository (e.g. repo1)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_repo_content)" -- ${cur}))
                             compopt -o nospace
                             return 0;;
@@ -146,6 +157,18 @@ _pgbackrest() {
                         --output)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
                             return 0;;
+                        # Set repo key.
+                        1|2|3|4)
+                            case ${COMP_WORDS[COMP_CWORD - 2]} in
+                                # Check construction like '--repo 2'.
+                                --repo)
+                                    repo_key=${prev}
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_repo_content)" -- ${cur}))
+                                    compopt -o nospace
+                                    return 0;;
+                                *)
+                                    return 1;;
+                            esac;;
                         *)
                             if [[ ${prev} =~ ${arg_regex} ]]; then
                                 COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
