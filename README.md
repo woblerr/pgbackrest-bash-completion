@@ -1,7 +1,7 @@
 # pgBackRest Bash Completion
 A script that adds bash completion for pgBackRest (https://pgbackrest.org/).
 
-# Usage
+## Usage
 
 * Simple use:
     ```bash
@@ -17,3 +17,7 @@ A script that adds bash completion for pgBackRest (https://pgbackrest.org/).
     ```bash
     echo "source /path/to/pgbackrest-completion.sh" >> ~/.bashrc
     ```
+
+## Simple demo
+
+![demo](../images/demo.gif?raw=true)
