@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
 # Bash completion support for pgBackRest (https://pgbackrest.org/)
+# See 'allow-list' in https://github.com/pgbackrest/pgbackrest/blob/main/src/build/config/config.yaml
 
 # For all executed commands stderr is sent to /dev/null. 
 # Errors are not needed for completion.
@@ -34,8 +35,28 @@ __pgbackrest_command_options_values_output() {
     echo "text"$'\n'"json"
 }
 
-# If no stanza - return empty string; nothing to complete
-# May be some delays in getting stanza names
+# The '--buffer-size' displays values in the user friendly format starting from pgBackRest v2.37.
+# In earlier versions, values in bytes will be substituted.
+# https://github.com/pgbackrest/pgbackrest/pull/1557
+__pgbackrest_command_options_values_buffer_size(){
+    local buffer_size_option_values
+    # Regex for valid values like:
+    #   16384,
+    #   16777216.
+    #   16KiB,
+    #   16MiB.
+    local size_regex="^[[:digit:]]+([[:alpha:]]+)?[[:punct:]]$"
+    # Get full string with all values.
+    local buffer_size_content=$(${script} help ${COMP_WORDS[1]} ${prev#--} 2>/dev/null | awk '/^Allowed values([[:graph:]]|[[:space:]])/ {print $0; getline; print $0}')
+    # Parse string and add to array result.
+    for line in ${buffer_size_content}; do
+        [[ ${line} =~ ${size_regex} ]] &&  buffer_size_option_values+=(${line/[[:punct:]]/})
+    done
+    echo ${buffer_size_option_values[@]}
+}
+
+# If no stanza - return empty string; nothing to complete.
+# May be some delays in getting stanza names.
 __pgbackrest_stanza_values() {
     local stanza_values=$(${script} info --output text 2>/dev/null | awk '/^stanza:/ {print $2}')
     echo ${stanza_values} 
@@ -110,7 +131,7 @@ _pgbackrest() {
                             return 0;;
                         repo-ls | repo-get)
                             # Because '--repo' flag not specified yet,
-                            # Get repo content from the highest priority repository (e.g. repo1)
+                            # get repo content from the highest priority repository (e.g. repo1).
                             COMPREPLY=($(compgen -W "$(__pgbackrest_repo_content)" -- ${cur}))
                             compopt -o nospace
                             return 0;;
@@ -130,6 +151,9 @@ _pgbackrest() {
                             return 0;;
                         --output)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
+                            return 0;;
+                        --buffer-size)
+                            COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_buffer_size)" -- ${cur}))
                             return 0;;
                         *)
                             if [[ ${prev} =~ ${arg_regex} ]]; then
@@ -164,6 +188,9 @@ _pgbackrest() {
                         --output)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
                             return 0;;
+                        --buffer-size)
+                            COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_buffer_size)" -- ${cur}))
+                            return 0;;
                         *)
                             if [[ ${prev} =~ ${arg_regex} ]]; then
                                 COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
@@ -185,4 +212,5 @@ _pgbackrest() {
     esac
 }
 
-complete -F _pgbackrest pgbackrest
+# -o nosort - disable bash sorting, use pgBackRest output sorting.
+complete -o nosort -F _pgbackrest pgbackrest
