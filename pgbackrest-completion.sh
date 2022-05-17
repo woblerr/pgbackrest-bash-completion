@@ -27,18 +27,24 @@ __pgbackrest_command_options_values() {
     echo ${command_options_values}
 }
 
-# The '--output' option is available for 2 commands ('repo-ls' and 'info') with the same values.
+# The '--output' option is available for 'repo-ls' and 'info' commands with the same values.
 # For 'repo-ls' command displayed additional information in the same format. 
-# To simplify the solution, the option values are specified directly.
-# If the values for different commands will be different, this code must be reviewed.
+# To simplify the solution and not write additional regexp, the option values are specified directly.
 __pgbackrest_command_options_values_output() {
     echo "text"$'\n'"json"
+}
+
+# The '--output' option is available for 'verify' command with another values.
+# As well as other formatting of the hint text.
+# When new commands with unique options list appear, refactoring will be required.
+__pgbackrest_command_options_values_output_verify() {
+    echo "none"$'\n'"text"
 }
 
 # The '--buffer-size' displays values in the user friendly format starting from pgBackRest v2.37.
 # In earlier versions, values in bytes will be substituted.
 # https://github.com/pgbackrest/pgbackrest/pull/1557
-__pgbackrest_command_options_values_buffer_size(){
+__pgbackrest_command_options_values_buffer_size() {
     local buffer_size_option_values
     # Regex for valid values like:
     #   16384,
@@ -150,8 +156,15 @@ _pgbackrest() {
                             COMPREPLY=($(compgen -W "$(__pgbackrest_stanza_values)" -- ${cur}))
                             return 0;;
                         --output)
-                            COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
-                            return 0;;
+                            # Different values for the '--output' option depending on the command.
+                            case ${COMP_WORDS[1]} in
+                                verify)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output_verify)" -- ${cur}))
+                                    return 0;;
+                                *)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
+                                    return 0;;
+                            esac;;
                         --buffer-size)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_buffer_size)" -- ${cur}))
                             return 0;;
@@ -186,8 +199,14 @@ _pgbackrest() {
                             COMPREPLY=($(compgen -W "$(__pgbackrest_stanza_values)" -- ${cur}))
                             return 0;;
                         --output)
-                            COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
-                            return 0;;
+                            case ${COMP_WORDS[1]} in
+                                verify)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output_verify)" -- ${cur}))
+                                    return 0;;
+                                *)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
+                                    return 0;;
+                            esac;;
                         --buffer-size)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_buffer_size)" -- ${cur}))
                             return 0;;
