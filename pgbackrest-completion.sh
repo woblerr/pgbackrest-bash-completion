@@ -61,6 +61,12 @@ __pgbackrest_command_options_values_buffer_size() {
     echo ${buffer_size_option_values[@]}
 }
 
+# The '--type' option for 'info' command has non-standard hint text formating for parsing.
+# If the number of commands with non-standard hint text formating will grow, refactoring will be required.
+__pgbackrest_command_options_values_type_info() {
+    echo "full"$'\n'"incr"$'\n'"diff"
+}
+
 # If no stanza - return empty string; nothing to complete.
 # May be some delays in getting stanza names.
 __pgbackrest_stanza_values() {
@@ -168,6 +174,17 @@ _pgbackrest() {
                         --buffer-size)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_buffer_size)" -- ${cur}))
                             return 0;;
+                        --type)
+                            # Different values for the '--type' option depending on the command.
+                            case ${COMP_WORDS[1]} in
+                                info)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_backup_types)" -- ${cur}))
+                                    return 0;;
+                                *)
+                                    # The usual completion for all other commands.
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
+                                    return 0;;
+                            esac;;
                         *)
                             if [[ ${prev} =~ ${arg_regex} ]]; then
                                 COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
@@ -210,6 +227,15 @@ _pgbackrest() {
                         --buffer-size)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_buffer_size)" -- ${cur}))
                             return 0;;
+                        --type)
+                            case ${COMP_WORDS[1]} in
+                                info)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_backup_types)" -- ${cur}))
+                                    return 0;;
+                                *)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
+                                    return 0;;
+                            esac;;
                         *)
                             if [[ ${prev} =~ ${arg_regex} ]]; then
                                 COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
