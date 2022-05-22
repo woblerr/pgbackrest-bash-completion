@@ -178,7 +178,7 @@ _pgbackrest() {
                             # Different values for the '--type' option depending on the command.
                             case ${COMP_WORDS[1]} in
                                 info)
-                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_backup_types)" -- ${cur}))
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_type_info)" -- ${cur}))
                                     return 0;;
                                 *)
                                     # The usual completion for all other commands.
@@ -230,7 +230,7 @@ _pgbackrest() {
                         --type)
                             case ${COMP_WORDS[1]} in
                                 info)
-                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_backup_types)" -- ${cur}))
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_type_info)" -- ${cur}))
                                     return 0;;
                                 *)
                                     COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
