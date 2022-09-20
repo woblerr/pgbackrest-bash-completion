@@ -185,6 +185,11 @@ _pgbackrest() {
                                     COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
                                     return 0;;
                             esac;;
+                        --repo-storage-upload-chunk-size)
+                            # Nothing to do. 
+                            # The documentation provides default values for different repo types.
+                            # But there are no definite values for the parameter.
+                            return 1;;
                         *)
                             if [[ ${prev} =~ ${arg_regex} ]]; then
                                 COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
@@ -236,6 +241,8 @@ _pgbackrest() {
                                     COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
                                     return 0;;
                             esac;;
+                        --repo-storage-upload-chunk-size)
+                            return 1;;
                         *)
                             if [[ ${prev} =~ ${arg_regex} ]]; then
                                 COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))

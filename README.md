@@ -1,5 +1,5 @@
 # pgBackRest Bash Completion
-A script that adds bash completion for pgBackRest (https://pgbackrest.org/).
+A script that adds bash completion for pgBackRest (https://pgbackrest.org).
 
 ## Usage
 
