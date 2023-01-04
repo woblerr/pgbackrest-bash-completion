@@ -70,7 +70,10 @@ __pgbackrest_command_options_values_type_info() {
 # If no stanza - return empty string; nothing to complete.
 # May be some delays in getting stanza names.
 __pgbackrest_stanza_values() {
-    local stanza_values=$(${script} info --output text 2>/dev/null | awk '/^stanza:/ {print $2}')
+    # Basic command for 'info' command.
+    local info_command="${script} info --output text"
+    [[ ${config_params} != '' ]] && info_command="${info_command} ${config_params}"
+    local stanza_values=$(${info_command} 2>/dev/null | awk '/^stanza:/ {print $2}')
     echo ${stanza_values} 
 }
 
@@ -90,15 +93,16 @@ __pgbackrest_repo_content() {
     #     archive/dem
     #     archive/demo/arch
     [[ ${cur} =~ ${folder_regex} || ${cur} =~ ${path_regex} ]] && cur_value=${cur%/*} && substr_path="true"
+    # Basic command for 'repo-ls' command.
+    local repo_ls_command="${script} repo-ls --output json"
+    # Add config params, if they exists.
+    [[ ${config_params} != '' ]] && repo_ls_command="${repo_ls_command} ${config_params}"
+    # For compatibility with versions < v2.33.
+    [[ ${repo_params} != '' ]] && repo_ls_command="${repo_ls_command} ${repo_params}"
     # Get repo content by using 'repo-ls' in json format.
     # For 'repo-get', the content is also obtained via 'repo-ls'.
     # The logic for type 'link' is equivalent to type 'path'.
-    if [[ ${repo_key} == '' ]]; then
-        # For compatibility with versions < v2.33.
-        raw_content=$(${script} repo-ls --output json ${cur_value} 2>/dev/null)
-    else
-        raw_content=$(${script} repo-ls --repo ${repo_key} --output json ${cur_value} 2>/dev/null)
-    fi
+    raw_content=$(${repo_ls_command} ${cur_value} 2>/dev/null)
     # When incorrect value for '--repo' is used (e.g. '--repo 300'),
     # the command above returns an error, which is discarded,  and an empty result.
     # The completion will not show anything.
@@ -123,10 +127,12 @@ _pgbackrest() {
     script=${COMP_WORDS[0]}
     # Repo id allowed values: 1-256.
     # https://pgbackrest.org/command.html#command-repo-ls
-    # Defaul value ''.
-    local repo_key=''
+    # If --repo parameter is not set, use the default parameter for pgBackRest or from env.
+    local repo_params=''
     # Regex for check previous argument.
     arg_regex="^--([[:alnum:][:punct:]])+$"
+    # If --config* parameters are not set, use the default parameters for pgBackRest or from env.
+    local config_params=''
     case $COMP_CWORD in
         1)
             COMPREPLY=($(compgen -W "$(__pgbackrest_commands)" -- ${cur}))
@@ -216,6 +222,25 @@ _pgbackrest() {
                     COMPREPLY=($(compgen -W "$(__pgbackrest_command_options)" -- ${cur}))
                     return 0;;
                 *)
+                    local i
+                    # 0 - script name (pgbackrest), 1 - command (info).
+                    # There is no need to check them.
+                    # Example:
+                    # pgbackrest info --config /tmp/pgbackrest.conf --stanza <TAB>
+                    for (( i=2; i<${#COMP_WORDS[@]}-1; i++)); do
+                        case ${COMP_WORDS[$i]} in
+                            # Checking whether --config* parameters are set.
+                            --config)
+                                config_params="${config_params} --config ${COMP_WORDS[$i+1]}";;
+                            --config-include-path)
+                                config_params="${config_params} --config-include-path ${COMP_WORDS[$i+1]}";;
+                            --config-path)
+                                config_params="${config_params} --config-path ${COMP_WORDS[$i+1]}";;
+                            # Checking whether --repo parameter is set.
+                            --repo)
+                                repo_params="${repo_params} --repo ${COMP_WORDS[$i+1]}";;
+                        esac
+                    done
                     case ${prev} in
                         --stanza)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_stanza_values)" -- ${cur}))
@@ -250,8 +275,6 @@ _pgbackrest() {
                             else
                                 case ${COMP_WORDS[1]} in
                                     repo-ls | repo-get)
-                                        # Check construction like '--repo 2'.
-                                        [[ ${COMP_WORDS[COMP_CWORD - 2]} == "--repo" ]] && repo_key=${prev}
                                         COMPREPLY=($(compgen -W "$(__pgbackrest_repo_content)" -- ${cur}))
                                         compopt -o nospace
                                         return 0;;
