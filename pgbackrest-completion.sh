@@ -27,7 +27,7 @@ __pgbackrest_command_options_values() {
     echo ${command_options_values}
 }
 
-# The '--output' option is available for 'repo-ls' and 'info' commands with the same values.
+# The '--output' option is available for 'repo-ls', 'manifest' and 'info' commands with the same values.
 # For 'repo-ls' command displayed additional information in the same format. 
 # To simplify the solution and not write additional regexp, the option values are specified directly.
 __pgbackrest_command_options_values_output() {
@@ -36,9 +36,14 @@ __pgbackrest_command_options_values_output() {
 
 # The '--output' option is available for 'verify' command with another values.
 # As well as other formatting of the hint text.
-# When new commands with unique options list appear, refactoring will be required.
 __pgbackrest_command_options_values_output_verify() {
     echo "none"$'\n'"text"
+}
+
+# The '--output' option is available for 'version' command with another values.
+# As well as other formatting of the hint text.
+__pgbackrest_command_options_values_output_version() {
+    echo "text"$'\n'"num"
 }
 
 # The '--buffer-size' displays values in the user friendly format starting from pgBackRest v2.37.
@@ -173,6 +178,9 @@ _pgbackrest() {
                                 verify)
                                     COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output_verify)" -- ${cur}))
                                     return 0;;
+                                version)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output_version)" -- ${cur}))
+                                    return 0;;
                                 *)
                                     COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
                                     return 0;;
@@ -249,6 +257,9 @@ _pgbackrest() {
                             case ${COMP_WORDS[1]} in
                                 verify)
                                     COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output_verify)" -- ${cur}))
+                                    return 0;;
+                                version)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output_version)" -- ${cur}))
                                     return 0;;
                                 *)
                                     COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
