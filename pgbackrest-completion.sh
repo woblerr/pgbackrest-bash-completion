@@ -27,24 +27,7 @@ __pgbackrest_command_options_values() {
     echo ${command_options_values}
 }
 
-# The '--output' option is available for 'repo-ls', 'manifest' and 'info' commands with the same values.
-# For 'repo-ls' command displayed additional information in the same format. 
-# To simplify the solution and not write additional regexp, the option values are specified directly.
-__pgbackrest_command_options_values_output() {
-    echo "text"$'\n'"json"
-}
 
-# The '--output' option is available for 'verify' command with another values.
-# As well as other formatting of the hint text.
-__pgbackrest_command_options_values_output_verify() {
-    echo "none"$'\n'"text"
-}
-
-# The '--output' option is available for 'version' command with another values.
-# As well as other formatting of the hint text.
-__pgbackrest_command_options_values_output_version() {
-    echo "text"$'\n'"num"
-}
 
 # The '--buffer-size' displays values in the user friendly format starting from pgBackRest v2.37.
 # In earlier versions, values in bytes will be substituted.
@@ -66,11 +49,7 @@ __pgbackrest_command_options_values_buffer_size() {
     echo ${buffer_size_option_values[@]}
 }
 
-# The '--type' option for 'info' command has non-standard hint text formating for parsing.
-# If the number of commands with non-standard hint text formating will grow, refactoring will be required.
-__pgbackrest_command_options_values_type_info() {
-    echo "full"$'\n'"incr"$'\n'"diff"
-}
+
 
 # If no stanza - return empty string; nothing to complete.
 # May be some delays in getting stanza names.
@@ -172,33 +151,9 @@ _pgbackrest() {
                         --stanza)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_stanza_values)" -- ${cur}))
                             return 0;;
-                        --output)
-                            # Different values for the '--output' option depending on the command.
-                            case ${COMP_WORDS[1]} in
-                                verify)
-                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output_verify)" -- ${cur}))
-                                    return 0;;
-                                version)
-                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output_version)" -- ${cur}))
-                                    return 0;;
-                                *)
-                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
-                                    return 0;;
-                            esac;;
                         --buffer-size)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_buffer_size)" -- ${cur}))
                             return 0;;
-                        --type)
-                            # Different values for the '--type' option depending on the command.
-                            case ${COMP_WORDS[1]} in
-                                info)
-                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_type_info)" -- ${cur}))
-                                    return 0;;
-                                *)
-                                    # The usual completion for all other commands.
-                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
-                                    return 0;;
-                            esac;;
                         --repo-storage-upload-chunk-size)
                             # Nothing to do. 
                             # The documentation provides default values for different repo types.
@@ -253,30 +208,9 @@ _pgbackrest() {
                         --stanza)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_stanza_values)" -- ${cur}))
                             return 0;;
-                        --output)
-                            case ${COMP_WORDS[1]} in
-                                verify)
-                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output_verify)" -- ${cur}))
-                                    return 0;;
-                                version)
-                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output_version)" -- ${cur}))
-                                    return 0;;
-                                *)
-                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output)" -- ${cur}))
-                                    return 0;;
-                            esac;;
                         --buffer-size)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_buffer_size)" -- ${cur}))
                             return 0;;
-                        --type)
-                            case ${COMP_WORDS[1]} in
-                                info)
-                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_type_info)" -- ${cur}))
-                                    return 0;;
-                                *)
-                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
-                                    return 0;;
-                            esac;;
                         --repo-storage-upload-chunk-size)
                             return 1;;
                         *)
