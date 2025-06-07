@@ -28,6 +28,11 @@ __pgbackrest_command_options_values() {
 }
 
 
+# For 'repo-ls' command displayed additional information in the same format. 
+# To simplify the solution and not write additional regexp, the option values are specified directly.
+__pgbackrest_command_options_values_output_repo_ls() {
+    echo "text"$'\n'"json"
+}
 
 # The '--buffer-size' displays values in the user friendly format starting from pgBackRest v2.37.
 # In earlier versions, values in bytes will be substituted.
@@ -151,6 +156,16 @@ _pgbackrest() {
                         --stanza)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_stanza_values)" -- ${cur}))
                             return 0;;
+                        --output)
+                            # Different values for the '--output' option depending on the command.
+                            case ${COMP_WORDS[1]} in
+                                repo-ls)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output_repo_ls)" -- ${cur}))
+                                    return 0;;
+                                *)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
+                                    return 0;;
+                            esac;;
                         --buffer-size)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_buffer_size)" -- ${cur}))
                             return 0;;
@@ -208,6 +223,15 @@ _pgbackrest() {
                         --stanza)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_stanza_values)" -- ${cur}))
                             return 0;;
+                        --output)
+                            case ${COMP_WORDS[1]} in
+                                repo-ls)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_output_repo_ls)" -- ${cur}))
+                                    return 0;;
+                                *)
+                                    COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values)" -- ${cur}))
+                                    return 0;;
+                            esac;;
                         --buffer-size)
                             COMPREPLY=($(compgen -W "$(__pgbackrest_command_options_values_buffer_size)" -- ${cur}))
                             return 0;;
